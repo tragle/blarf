@@ -68,14 +68,14 @@ fn main() -> std::io::Result<()> {
     }
 
     articles.reverse();
+    const ROOT: &str = "blog";
+    const FIRST: usize = 0;
+    let last: usize = articles.len() - 1;
 
-    let first = 0;
-    let last = articles.len() - 1;
-
-    for i in first..=last {
+    for i in FIRST..=last {
         let article = &articles[i];
-        let file = File::create(format!("{}.html", article.slug))?;
-        let prev_slug = if i > first {
+        let file = File::create(format!("{}/{}.html", ROOT, article.slug))?;
+        let prev_slug = if i > FIRST {
             Some(&articles[i - 1].slug)
         } else {
             None
@@ -91,7 +91,7 @@ fn main() -> std::io::Result<()> {
         let html = render_article(&html_buf, &footer);
         writer.write_all(html.as_bytes())?;
         if i == last {
-            let index_file = File::create("index.html")?;
+            let index_file = File::create(format!("{}/index.html", ROOT))?;
             let mut writer = BufWriter::new(&index_file);
             writer.write_all(html.as_bytes())?;
         }
