@@ -1,0 +1,10 @@
+[package]
+name = "blarf"
+version = "0.1.0"
+authors = ["Tom Ragle <tragle@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+pulldown-cmark = { version = "0.2.0", default-features = false }
+handlebars = "1.1.0"
+serde_json = "1.0.38"
