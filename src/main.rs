@@ -22,6 +22,7 @@ fn render_article(article: &str, footer: &str) -> String {
         <html>
             <head>
                 <title>ragle.io</title>
+                <link rel="stylesheet" href="styles.css">
             </head>
             <body>
             {}
@@ -69,13 +70,13 @@ fn main() -> std::io::Result<()> {
 
     articles.reverse();
     const ROOT: &str = "blog";
-    const FIRST: usize = 0;
-    let last: usize = articles.len() - 1;
+    let first = 0;
+    let last = articles.len() - 1;
 
-    for i in FIRST..=last {
+    for i in first..=last {
         let article = &articles[i];
         let file = File::create(format!("{}/{}.html", ROOT, article.slug))?;
-        let prev_slug = if i > FIRST {
+        let prev_slug = if i > first {
             Some(&articles[i - 1].slug)
         } else {
             None
