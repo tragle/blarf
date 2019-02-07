@@ -8,6 +8,13 @@ struct Article {
     slug: String,
 }
 
+fn parse_article_markdown(article: &Article) -> String {
+    let parser = Parser::new(&article.markdown);
+    let mut html_buf = String::new();
+    html::push_html(&mut html_buf, parser);
+    html_buf
+}
+
 fn render_article(article: &str, footer: &str) -> String {
     format!(
         r#"
@@ -63,7 +70,8 @@ fn main() -> std::io::Result<()> {
     articles.reverse();
 
     let first = 0;
-    let last = articles.len() - 1; 
+    let last = articles.len() - 1;
+
     for i in first..=last {
         let article = &articles[i];
         let file = File::create(format!("{}.html", article.slug))?;
@@ -78,16 +86,14 @@ fn main() -> std::io::Result<()> {
             None
         };
         let mut writer = BufWriter::new(&file);
-        let parser = Parser::new(&article.markdown);
-        let mut html_buf = String::new();
-        html::push_html(&mut html_buf, parser);
+        let html_buf = parse_article_markdown(&article);
         let footer = render_footer(prev_slug, next_slug);
         let html = render_article(&html_buf, &footer);
-        writer.write(html.as_bytes())?;
+        writer.write_all(html.as_bytes())?;
         if i == last {
             let index_file = File::create("index.html")?;
             let mut writer = BufWriter::new(&index_file);
-            writer.write(html.as_bytes())?;
+            writer.write_all(html.as_bytes())?;
         }
     }
 
