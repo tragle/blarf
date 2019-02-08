@@ -23,6 +23,7 @@ fn render_article(article: &str, footer: &str) -> String {
             <head>
                 <title>ragle.io</title>
                 <link rel="stylesheet" href="styles.css">
+                <meta charset="utf-8">
             </head>
             <body>
             {}
