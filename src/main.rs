@@ -8,6 +8,40 @@ struct Article {
     slug: String,
 }
 
+const DEST_ROOT: &str = "tmp";
+const SOURCE_ROOT: &str = "source";
+
+fn create_tmp() -> std::io::Result<()> {
+    let _ = fs::remove_dir_all(DEST_ROOT);
+    fs::create_dir(DEST_ROOT)?;
+    Ok(())
+}
+
+fn copy_public() -> std::io::Result<()> {
+    fs::create_dir(format!("{}/public", DEST_ROOT))?;
+    fs::create_dir(format!("{}/public/img", DEST_ROOT))?;
+    fs::copy(
+        format!("{}/public/styles.css", SOURCE_ROOT),
+        format!("{}/public/styles.css", DEST_ROOT),
+    )?;
+    for source_file in fs::read_dir(format!("{}/public/img", SOURCE_ROOT))? {
+        if let Ok(f) = source_file {
+            let filetype = f.file_type()?;
+            if filetype.is_file() {
+                fs::copy(
+                    f.path().as_os_str(),
+                    format!(
+                        "{}/public/img/{}",
+                        DEST_ROOT,
+                        f.file_name().to_str().unwrap()
+                    ),
+                )?;
+            }
+        }
+    }
+    Ok(())
+}
+
 fn parse_article_markdown(article: &Article) -> String {
     let parser = Parser::new(&article.markdown);
     let mut html_buf = String::new();
@@ -63,7 +97,9 @@ fn render_footer(prev: Option<&String>, next: Option<&String>) -> String {
 
 fn main() -> std::io::Result<()> {
     let mut articles: Vec<Article> = vec![];
-    for entry in fs::read_dir("articles")? {
+    create_tmp()?;
+    copy_public()?;
+    for entry in fs::read_dir(format!("{}/articles", SOURCE_ROOT))? {
         let entry = &entry?;
         let path = entry.path();
         let slug = path.file_stem().unwrap().to_str().unwrap().to_owned();
@@ -74,13 +110,12 @@ fn main() -> std::io::Result<()> {
     }
 
     articles.reverse();
-    const ROOT: &str = "blog";
     let first = 0;
     let last = articles.len() - 1;
 
     for i in first..=last {
         let article = &articles[i];
-        let file = File::create(format!("{}/{}.html", ROOT, article.slug))?;
+        let file = File::create(format!("{}/{}.html", DEST_ROOT, article.slug))?;
         let prev_slug = if i > first {
             Some(&articles[i - 1].slug)
         } else {
@@ -97,7 +132,7 @@ fn main() -> std::io::Result<()> {
         let html = render_article(&html_buf, &footer);
         writer.write_all(html.as_bytes())?;
         if i == last {
-            let index_file = File::create(format!("{}/index.html", ROOT))?;
+            let index_file = File::create(format!("{}/index.html", DEST_ROOT))?;
             let mut writer = BufWriter::new(&index_file);
             writer.write_all(html.as_bytes())?;
         }
