@@ -14,7 +14,7 @@ const DEST_ROOT: &str = "site";
 const SOURCE_ROOT: &str = "source";
 
 fn copy_dir(src: &Path, dest: &Path) -> std::io::Result<()> {
-    for entry in fs::read_dir(src)? {
+    for entry in fs::read_dir(src).expect(&format!("Cannot read dir for copy {:?}", src)) {
         if let Ok(f) = entry {
             let filetype = f.file_type()?;
             if filetype.is_dir() {
@@ -22,7 +22,8 @@ fn copy_dir(src: &Path, dest: &Path) -> std::io::Result<()> {
                 fs::create_dir(&dir_name)?;
                 copy_dir(&f.path(), Path::new(&dir_name))?;
             } else {
-                fs::copy(&f.path().as_os_str(), &dest.join(f.file_name()))?;
+                fs::copy(&f.path().as_os_str(), &dest.join(f.file_name()))
+                    .expect(&format!("Cannot copy {:?} to {:?}", &f, &dest));
             }
         }
     }
