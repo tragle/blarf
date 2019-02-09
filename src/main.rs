@@ -9,31 +9,36 @@ struct Article {
     slug: String,
 }
 
-const DEST_ROOT: &str = "tmp";
+const TMP_ROOT: &str = "tmp";
+const DEST_ROOT: &str = "site";
 const SOURCE_ROOT: &str = "source";
 
 fn copy_dir(src: &Path, dest: &Path) -> std::io::Result<()> {
-    println!("src: {:?}, dest: {:?}", src, dest);
     for entry in fs::read_dir(src)? {
         if let Ok(f) = entry {
             let filetype = f.file_type()?;
-            if !filetype.is_dir() {
-                println!("Is file");
-                fs::copy(&f.path().as_os_str(), &dest.join(f.file_name()))?;
-            } else {
+            if filetype.is_dir() {
                 let dir_name = dest.join(f.file_name());
                 fs::create_dir(&dir_name)?;
                 copy_dir(&f.path(), Path::new(&dir_name))?;
+            } else {
+                fs::copy(&f.path().as_os_str(), &dest.join(f.file_name()))?;
             }
         }
     }
     Ok(())
 }
 
-fn create_tmp() -> std::io::Result<()> {
+fn write_site() -> std::io::Result<()> {
     let _ = fs::remove_dir_all(DEST_ROOT);
-    fs::create_dir(DEST_ROOT).expect(&format!("Cannot create tmp dir at {}", DEST_ROOT));
-    let articles_folder = format!("{}/articles", DEST_ROOT);
+    fs::rename(TMP_ROOT, DEST_ROOT)?;
+    Ok(())
+}
+
+fn create_tmp() -> std::io::Result<()> {
+    let _ = fs::remove_dir_all(TMP_ROOT);
+    fs::create_dir(TMP_ROOT).expect(&format!("Cannot create tmp dir at {}", TMP_ROOT));
+    let articles_folder = format!("{}/articles", TMP_ROOT);
     fs::create_dir(&articles_folder).expect(&format!("Cannot create dir {}", &articles_folder));
     Ok(())
 }
@@ -94,7 +99,7 @@ fn render_footer(prev: Option<&String>, next: Option<&String>) -> String {
 fn main() -> std::io::Result<()> {
     let mut articles: Vec<Article> = vec![];
     create_tmp()?;
-    copy_dir(&Path::new(SOURCE_ROOT).join("public"), Path::new(DEST_ROOT))?;
+    copy_dir(&Path::new(SOURCE_ROOT).join("public"), Path::new(TMP_ROOT))?;
     let articles_dir = format!("{}/articles", SOURCE_ROOT);
     for entry in fs::read_dir(&articles_dir).expect(&format!("Cannot read dir {}", articles_dir)) {
         let entry = &entry?;
@@ -113,7 +118,7 @@ fn main() -> std::io::Result<()> {
 
     for i in first..=last {
         let article = &articles[i];
-        let file_name = format!("{}/articles/{}.html", DEST_ROOT, article.slug);
+        let file_name = format!("{}/articles/{}.html", TMP_ROOT, article.slug);
         let file =
             File::create(&file_name).expect(&format!("Cannot create article file {}", &file_name));
         let prev_slug = if i > first {
@@ -134,13 +139,15 @@ fn main() -> std::io::Result<()> {
             .write_all(html.as_bytes())
             .expect(&format!("Cannot write article file at {}", &file_name));
         if i == last {
-            let index_file_name = format!("{}/index.html", DEST_ROOT);
+            let index_file_name = format!("{}/index.html", TMP_ROOT);
             let index_file = File::create(&index_file_name)
                 .expect(&format!("Cannot write index file at {}", &index_file_name));
             let mut writer = BufWriter::new(&index_file);
             writer.write_all(html.as_bytes())?;
         }
     }
+
+    write_site()?;
 
     Ok(())
 }
