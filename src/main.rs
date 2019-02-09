@@ -2,6 +2,7 @@ use pulldown_cmark::{html, Parser};
 use std::fs::{self, File};
 use std::io::prelude::*;
 use std::io::BufWriter;
+use std::path::Path;
 
 struct Article {
     markdown: String,
@@ -11,42 +12,29 @@ struct Article {
 const DEST_ROOT: &str = "tmp";
 const SOURCE_ROOT: &str = "source";
 
+fn copy_dir(src: &Path, dest: &Path) -> std::io::Result<()> {
+    println!("src: {:?}, dest: {:?}", src, dest);
+    for entry in fs::read_dir(src)? {
+        if let Ok(f) = entry {
+            let filetype = f.file_type()?;
+            if !filetype.is_dir() {
+                println!("Is file");
+                fs::copy(&f.path().as_os_str(), &dest.join(f.file_name()))?;
+            } else {
+                let dir_name = dest.join(f.file_name());
+                fs::create_dir(&dir_name)?;
+                copy_dir(&f.path(), Path::new(&dir_name))?;
+            }
+        }
+    }
+    Ok(())
+}
+
 fn create_tmp() -> std::io::Result<()> {
     let _ = fs::remove_dir_all(DEST_ROOT);
     fs::create_dir(DEST_ROOT).expect(&format!("Cannot create tmp dir at {}", DEST_ROOT));
     let articles_folder = format!("{}/articles", DEST_ROOT);
     fs::create_dir(&articles_folder).expect(&format!("Cannot create dir {}", &articles_folder));
-    Ok(())
-}
-
-fn copy_public() -> std::io::Result<()> {
-    let public_folder = format!("{}/public", DEST_ROOT);
-    let img_folder = format!("{}/img", public_folder);
-    fs::create_dir(&public_folder).expect(&format!("Cannot create dir {}", &public_folder));
-    fs::create_dir(&img_folder).expect(&format!("Cannot create dir {}", &img_folder));
-    fs::copy(
-        format!("{}/public/styles.css", SOURCE_ROOT),
-        format!("{}/public/styles.css", DEST_ROOT),
-    )
-    .expect("Cannot copy styles.css");
-    let source_img_folder = format!("{}/public/img", SOURCE_ROOT);
-    for source_file in
-        fs::read_dir(&source_img_folder).expect(&format!("Cannot read dir {}", &source_img_folder))
-    {
-        if let Ok(f) = source_file {
-            let filetype = f.file_type().expect("Cannot read filetype");
-            if filetype.is_file() {
-                fs::copy(
-                    f.path().as_os_str(),
-                    format!(
-                        "{}/public/img/{}",
-                        DEST_ROOT,
-                        f.file_name().to_str().unwrap()
-                    ),
-                )?;
-            }
-        }
-    }
     Ok(())
 }
 
@@ -64,7 +52,7 @@ fn render_article(article: &str, footer: &str) -> String {
         <html>
             <head>
                 <title>ragle.io</title>
-                <link rel="stylesheet" href="/public/styles.css">
+                <link rel="stylesheet" href="/styles.css">
                 <meta charset="utf-8">
             </head>
             <body>
@@ -83,11 +71,11 @@ fn render_article(article: &str, footer: &str) -> String {
 
 fn render_footer(prev: Option<&String>, next: Option<&String>) -> String {
     let prev_str = match prev {
-        Some(val) => format!("<a href=\"/{}.html\">previous</a>", val),
+        Some(val) => format!("<a href=\"/articles/{}.html\">previous</a>", val),
         None => String::new(),
     };
     let next_str = match next {
-        Some(val) => format!("<a href=\"/{}.html\">next</a>", val),
+        Some(val) => format!("<a href=\"/articles/{}.html\">next</a>", val),
         None => String::new(),
     };
     format!(
@@ -106,7 +94,7 @@ fn render_footer(prev: Option<&String>, next: Option<&String>) -> String {
 fn main() -> std::io::Result<()> {
     let mut articles: Vec<Article> = vec![];
     create_tmp()?;
-    copy_public()?;
+    copy_dir(&Path::new(SOURCE_ROOT).join("public"), Path::new(DEST_ROOT))?;
     let articles_dir = format!("{}/articles", SOURCE_ROOT);
     for entry in fs::read_dir(&articles_dir).expect(&format!("Cannot read dir {}", articles_dir)) {
         let entry = &entry?;
