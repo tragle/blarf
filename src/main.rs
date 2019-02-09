@@ -26,8 +26,12 @@ fn render_article(article: &str, footer: &str) -> String {
                 <meta charset="utf-8">
             </head>
             <body>
-            {}
-            {}
+                <main>
+                    <div class="article">
+                        {}
+                        {}
+                    </div>
+                </main>
             </body>
         </html>
         "#,
