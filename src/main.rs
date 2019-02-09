@@ -13,20 +13,28 @@ const SOURCE_ROOT: &str = "source";
 
 fn create_tmp() -> std::io::Result<()> {
     let _ = fs::remove_dir_all(DEST_ROOT);
-    fs::create_dir(DEST_ROOT)?;
+    fs::create_dir(DEST_ROOT).expect(&format!("Cannot create tmp dir at {}", DEST_ROOT));
+    let articles_folder = format!("{}/articles", DEST_ROOT);
+    fs::create_dir(&articles_folder).expect(&format!("Cannot create dir {}", &articles_folder));
     Ok(())
 }
 
 fn copy_public() -> std::io::Result<()> {
-    fs::create_dir(format!("{}/public", DEST_ROOT))?;
-    fs::create_dir(format!("{}/public/img", DEST_ROOT))?;
+    let public_folder = format!("{}/public", DEST_ROOT);
+    let img_folder = format!("{}/img", public_folder);
+    fs::create_dir(&public_folder).expect(&format!("Cannot create dir {}", &public_folder));
+    fs::create_dir(&img_folder).expect(&format!("Cannot create dir {}", &img_folder));
     fs::copy(
         format!("{}/public/styles.css", SOURCE_ROOT),
         format!("{}/public/styles.css", DEST_ROOT),
-    )?;
-    for source_file in fs::read_dir(format!("{}/public/img", SOURCE_ROOT))? {
+    )
+    .expect("Cannot copy styles.css");
+    let source_img_folder = format!("{}/public/img", SOURCE_ROOT);
+    for source_file in
+        fs::read_dir(&source_img_folder).expect(&format!("Cannot read dir {}", &source_img_folder))
+    {
         if let Ok(f) = source_file {
-            let filetype = f.file_type()?;
+            let filetype = f.file_type().expect("Cannot read filetype");
             if filetype.is_file() {
                 fs::copy(
                     f.path().as_os_str(),
@@ -56,7 +64,7 @@ fn render_article(article: &str, footer: &str) -> String {
         <html>
             <head>
                 <title>ragle.io</title>
-                <link rel="stylesheet" href="styles.css">
+                <link rel="stylesheet" href="/public/styles.css">
                 <meta charset="utf-8">
             </head>
             <body>
@@ -99,13 +107,15 @@ fn main() -> std::io::Result<()> {
     let mut articles: Vec<Article> = vec![];
     create_tmp()?;
     copy_public()?;
-    for entry in fs::read_dir(format!("{}/articles", SOURCE_ROOT))? {
+    let articles_dir = format!("{}/articles", SOURCE_ROOT);
+    for entry in fs::read_dir(&articles_dir).expect(&format!("Cannot read dir {}", articles_dir)) {
         let entry = &entry?;
         let path = entry.path();
         let slug = path.file_stem().unwrap().to_str().unwrap().to_owned();
         let mut file = File::open(&path).unwrap();
         let mut markdown = String::new();
-        file.read_to_string(&mut markdown)?;
+        file.read_to_string(&mut markdown)
+            .expect("Cannot read article file");
         articles.push(Article { markdown, slug });
     }
 
@@ -115,7 +125,9 @@ fn main() -> std::io::Result<()> {
 
     for i in first..=last {
         let article = &articles[i];
-        let file = File::create(format!("{}/{}.html", DEST_ROOT, article.slug))?;
+        let file_name = format!("{}/articles/{}.html", DEST_ROOT, article.slug);
+        let file =
+            File::create(&file_name).expect(&format!("Cannot create article file {}", &file_name));
         let prev_slug = if i > first {
             Some(&articles[i - 1].slug)
         } else {
@@ -130,9 +142,13 @@ fn main() -> std::io::Result<()> {
         let html_buf = parse_article_markdown(&article);
         let footer = render_footer(prev_slug, next_slug);
         let html = render_article(&html_buf, &footer);
-        writer.write_all(html.as_bytes())?;
+        writer
+            .write_all(html.as_bytes())
+            .expect(&format!("Cannot write article file at {}", &file_name));
         if i == last {
-            let index_file = File::create(format!("{}/index.html", DEST_ROOT))?;
+            let index_file_name = format!("{}/index.html", DEST_ROOT);
+            let index_file = File::create(&index_file_name)
+                .expect(&format!("Cannot write index file at {}", &index_file_name));
             let mut writer = BufWriter::new(&index_file);
             writer.write_all(html.as_bytes())?;
         }
