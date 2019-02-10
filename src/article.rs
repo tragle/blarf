@@ -43,12 +43,13 @@ impl Article {
 
     pub fn render(&self, footer: &str) -> String {
         let article = &self.as_html();
+        let title = &self.title;
         format!(
             r#"
             <!doctype html>
             <html>
                 <head>
-                    <title>ragle.io</title>
+                    <title>{}</title>
                     <link rel="stylesheet" href="/styles.css">
                     <meta charset="utf-8">
                 </head>
@@ -62,7 +63,7 @@ impl Article {
                 </body>
             </html>
             "#,
-            article, footer
+            title, article, footer
         )
     }
 }
