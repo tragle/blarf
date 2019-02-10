@@ -7,6 +7,60 @@ use std::path::Path;
 struct Article {
     markdown: String,
     slug: String,
+    title: String
+}
+
+impl Article {
+    fn new(markdown: String, slug: String) -> Article {
+        match Article::get_title(&markdown) {
+            Some(title) => Article{markdown: markdown.clone(), slug, title: title.to_owned()},
+            None => Article{markdown, slug, title: String::from("")}
+        }
+    }
+
+    fn get_title(markdown: &str) -> Option<&str> {
+        let pattern = "# ";
+        let lines: Vec<&str> = markdown.split("\n").collect();
+        for line in lines {
+            if line.starts_with(&pattern) {
+                let (_, title) = &line.split_at(pattern.len());
+                return Some(title.trim())
+            }
+        }
+        None
+    }
+
+    fn as_html(&self) -> String {
+        let parser = Parser::new(&self.markdown);
+        let mut html_buf = String::new();
+        html::push_html(&mut html_buf, parser);
+        html_buf
+    }
+
+    fn render(&self, footer: &str) -> String {
+        let article = &self.as_html();
+        format!(
+            r#"
+            <!doctype html>
+            <html>
+                <head>
+                    <title>ragle.io</title>
+                    <link rel="stylesheet" href="/styles.css">
+                    <meta charset="utf-8">
+                </head>
+                <body>
+                    <main>
+                        <div class="article">
+                            {}
+                            {}
+                        </div>
+                    </main>
+                </body>
+            </html>
+            "#,
+            article, footer
+        )
+    }
 }
 
 const TMP_ROOT: &str = "tmp";
@@ -44,57 +98,41 @@ fn create_tmp() -> std::io::Result<()> {
     Ok(())
 }
 
-fn parse_article_markdown(article: &Article) -> String {
-    let parser = Parser::new(&article.markdown);
-    let mut html_buf = String::new();
-    html::push_html(&mut html_buf, parser);
-    html_buf
-}
-
-fn render_article(article: &str, footer: &str) -> String {
-    format!(
-        r#"
-        <!doctype html>
-        <html>
-            <head>
-                <title>ragle.io</title>
-                <link rel="stylesheet" href="/styles.css">
-                <meta charset="utf-8">
-            </head>
-            <body>
-                <main>
-                    <div class="article">
-                        {}
-                        {}
-                    </div>
-                </main>
-            </body>
-        </html>
-        "#,
-        article, footer
-    )
-}
-
-fn render_footer(prev: Option<&String>, next: Option<&String>) -> String {
+fn render_footer(prev: Option<&String>, next: Option<&String>, links: &String) -> String {
     let prev_str = match prev {
-        Some(val) => format!("<a href=\"/articles/{}.html\">previous</a>", val),
+        Some(val) => format!("<a href=\"/articles/{}.html\">&larr;</a>", val),
         None => String::new(),
     };
     let next_str = match next {
-        Some(val) => format!("<a href=\"/articles/{}.html\">next</a>", val),
+        Some(val) => format!("<a href=\"/articles/{}.html\">&rarr;</a>", val),
         None => String::new(),
     };
     format!(
         r#"
     <footer>
-        {}
-        <a id="contact" href="mailto:tragle@gmail.com">contact</a>
-        <a id="home" href="/">home</a>
-        {}
+        <div class="nav">
+            {}
+            <a href="/">&uarr;</a>
+            {}
+        </div>
+        <div class="article-list">
+            {}
+        </div>
+        <div class="contact">
+            <a id="contact" href="mailto:tragle@gmail.com">&#9993;</a>
+        </div>
     </footer>
     "#,
-        prev_str, next_str
+        prev_str, next_str, links
     )
+}
+
+fn render_article_links(articles: &Vec<Article>) -> String {
+    articles.iter().map(|article|{
+        let title = &article.title;
+        let slug = &article.slug;
+        format!(r#"<a href="/articles/{}.html">{}</a>"#, slug, title).to_owned()
+    }).collect::<Vec<String>>().join("\n")
 }
 
 fn main() -> std::io::Result<()> {
@@ -110,10 +148,12 @@ fn main() -> std::io::Result<()> {
         let mut markdown = String::new();
         file.read_to_string(&mut markdown)
             .expect("Cannot read article file");
-        articles.push(Article { markdown, slug });
+        articles.push(Article::new(markdown, slug));
     }
 
-    articles.reverse();
+    let links = render_article_links(&articles);
+
+    &articles.reverse();
     let first = 0;
     let last = articles.len() - 1;
 
@@ -133,9 +173,8 @@ fn main() -> std::io::Result<()> {
             None
         };
         let mut writer = BufWriter::new(&file);
-        let html_buf = parse_article_markdown(&article);
-        let footer = render_footer(prev_slug, next_slug);
-        let html = render_article(&html_buf, &footer);
+        let footer = render_footer(prev_slug, next_slug, &links);
+        let html = &article.render(&footer);
         writer
             .write_all(html.as_bytes())
             .expect(&format!("Cannot write article file at {}", &file_name));
