@@ -1,98 +1,16 @@
-use pulldown_cmark::{html, Parser};
+mod util;
+mod article;
+
 use std::fs::{self, File};
 use std::io::prelude::*;
 use std::io::BufWriter;
 use std::path::Path;
-extern crate clap;
-use clap::{Arg, ArgMatches, App};
 
-struct Article {
-    markdown: String,
-    slug: String,
-    title: String,
-}
-
-impl Article {
-    fn new(markdown: String, slug: String) -> Article {
-        match Article::get_title(&markdown) {
-            Some(title) => Article {
-                markdown: markdown.clone(),
-                slug,
-                title: title.to_owned(),
-            },
-            None => Article {
-                markdown,
-                slug,
-                title: String::from(""),
-            },
-        }
-    }
-
-    fn get_title(markdown: &str) -> Option<&str> {
-        let pattern = "# ";
-        let lines: Vec<&str> = markdown.split("\n").collect();
-        for line in lines {
-            if line.starts_with(&pattern) {
-                let (_, title) = &line.split_at(pattern.len());
-                return Some(title.trim());
-            }
-        }
-        None
-    }
-
-    fn as_html(&self) -> String {
-        let parser = Parser::new(&self.markdown);
-        let mut html_buf = String::new();
-        html::push_html(&mut html_buf, parser);
-        html_buf
-    }
-
-    fn render(&self, footer: &str) -> String {
-        let article = &self.as_html();
-        format!(
-            r#"
-            <!doctype html>
-            <html>
-                <head>
-                    <title>ragle.io</title>
-                    <link rel="stylesheet" href="/styles.css">
-                    <meta charset="utf-8">
-                </head>
-                <body>
-                    <main>
-                        <div class="article">
-                            {}
-                            {}
-                        </div>
-                    </main>
-                </body>
-            </html>
-            "#,
-            article, footer
-        )
-    }
-}
+use article::Article;
 
 const TMP_ROOT: &str = "tmp";
 const DEST_ROOT: &str = "site";
 const SOURCE_ROOT: &str = "source";
-
-fn copy_dir(src: &Path, dest: &Path) -> std::io::Result<()> {
-    for entry in fs::read_dir(src).expect(&format!("Cannot read dir for copy {:?}", src)) {
-        if let Ok(f) = entry {
-            let filetype = f.file_type()?;
-            if filetype.is_dir() {
-                let dir_name = dest.join(f.file_name());
-                fs::create_dir(&dir_name)?;
-                copy_dir(&f.path(), Path::new(&dir_name))?;
-            } else {
-                fs::copy(&f.path().as_os_str(), &dest.join(f.file_name()))
-                    .expect(&format!("Cannot copy {:?} to {:?}", &f, &dest));
-            }
-        }
-    }
-    Ok(())
-}
 
 fn write_site(dest_dir: &str) -> std::io::Result<()> {
     let _ = fs::remove_dir_all(dest_dir);
@@ -208,32 +126,8 @@ fn write_articles(articles: &Vec<Article>, email: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-fn get_args<'a>() -> ArgMatches<'a> {
-    App::new("blarf")
-    .version("1.0")
-    .author("Tom Ragle")
-    .about("Generates a static blog")
-    .arg(Arg::with_name("email")
-         .short("e")
-         .long("email")
-         .help("Sets contact email address")
-         .required(true)
-         .takes_value(true))
-    .arg(Arg::with_name("source")
-         .short("s")
-         .long("src")
-         .help("Sets source directory")
-         .takes_value(true))
-    .arg(Arg::with_name("destination")
-         .short("d")
-         .long("dest")
-         .help("Sets destination directory")
-         .takes_value(true))
-    .get_matches()
-}
-
 fn main() -> std::io::Result<()> {
-    let args = get_args();
+    let args = util::get_args();
     let source = args.value_of("source").unwrap_or(SOURCE_ROOT);
     let destination = args.value_of("destination").unwrap_or(DEST_ROOT);
     let email = args.value_of("email").unwrap();
@@ -243,7 +137,7 @@ fn main() -> std::io::Result<()> {
 
     create_tmp()?;
     write_articles(&articles, email)?;
-    copy_dir(&Path::new(source).join("public"), Path::new(TMP_ROOT))?;
+    util::copy_dir(&Path::new(source).join("public"), Path::new(TMP_ROOT))?;
     write_site(destination)?;
 
     Ok(())
