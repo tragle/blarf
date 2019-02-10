@@ -26,55 +26,6 @@ fn create_tmp() -> std::io::Result<()> {
     Ok(())
 }
 
-fn render_footer(
-    prev: Option<&String>,
-    next: Option<&String>,
-    links: &String,
-    email: &str,
-) -> String {
-    let prev_str = match prev {
-        Some(val) => format!("<a href=\"/articles/{}.html\">&larr;</a>", val),
-        None => String::from("<span class=\"disabled\">&larr;</span>"),
-    };
-    let next_str = match next {
-        Some(val) => format!("<a href=\"/articles/{}.html\">&rarr;</a>", val),
-        None => String::from("<span class=\"disabled\">&rarr;</span>"),
-    };
-    format!(
-        r#"
-    <footer>
-        <div class="nav">
-            <a href="/">&uarr;</a>
-        </div>
-        <div class="nav">
-            {}
-            <span class="article-list">
-                {}
-            </span>
-            {}
-        </div>
-        <div class="contact">
-            <a id="contact" href="mailto:{}">&#9993;</a>
-        </div>
-    </footer>
-    "#,
-        prev_str, links, next_str, email
-    )
-}
-
-fn render_article_links(articles: &Vec<Article>) -> String {
-    articles
-        .iter()
-        .rev()
-        .map(|article| {
-            let title = &article.title;
-            let slug = &article.slug;
-            format!(r#"<a href="/articles/{}.html">{}</a>"#, slug, title).to_owned()
-        })
-        .collect::<Vec<String>>()
-        .join("\n")
-}
-
 fn get_articles(source_dir: &str) -> std::result::Result<Vec<Article>, std::io::Error> {
     let mut articles: Vec<Article> = vec![];
     let articles_dir = format!("{}/articles", source_dir);
@@ -101,24 +52,14 @@ fn write_article(file_name: &str, html: &str) -> std::io::Result<()> {
 }
 
 fn write_articles(articles: &Vec<Article>, email: &str) -> std::io::Result<()> {
-    let links = render_article_links(&articles);
+    // let links = render_article_links(&articles);
 
     let first = 0;
     let last = articles.len() - 1;
 
     for i in first..=last {
         let article = &articles[i];
-        let prev_slug = if i > first {
-            Some(&articles[i - 1].slug)
-        } else {
-            None
-        };
-        let next_slug = if i < last {
-            Some(&articles[i + 1].slug)
-        } else {
-            None
-        };
-        let footer = render_footer(prev_slug, next_slug, &links, email);
+        let footer = Article::render_footer(i, &articles, email);
         let html = &article.render(&footer);
         write_article(
             &format!("{}/articles/{}.html", TMP_ROOT, article.slug),
