@@ -26,14 +26,6 @@ pub fn get_args<'a>() -> ArgMatches<'a> {
         .author("Tom Ragle")
         .about("Generates a static blog")
         .arg(
-            Arg::with_name("email")
-                .short("e")
-                .long("email")
-                .help("Sets contact email address")
-                .required(true)
-                .takes_value(true),
-        )
-        .arg(
             Arg::with_name("articles")
                 .short("a")
                 .long("articles")
@@ -42,17 +34,24 @@ pub fn get_args<'a>() -> ArgMatches<'a> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("static")
-                .short("s")
-                .long("static")
-                .help("Sets static files source directory")
-                .takes_value(true),
-        )
-        .arg(
             Arg::with_name("css")
                 .short("c")
                 .long("css")
                 .help("Sets css file")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("email")
+                .short("e")
+                .long("email")
+                .help("Sets contact email address")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("static")
+                .short("s")
+                .long("static")
+                .help("Sets static files source directory")
                 .takes_value(true),
         )
         .arg(

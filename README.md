@@ -6,6 +6,8 @@ barfs blogs
 
 ### Installation
 
+Requires rust and make.
+
 ```
 make
 make install
@@ -13,7 +15,7 @@ make install
 
 ### Use
 
-Blarf looks for a stylesheet, a directory containing markdown articles, and a directory containing static assets.
+blarf looks for a directory containing markdown articles, and optionally a stylesheet, email address, and a directory containing static assets. If no stylesheet is provided, blarf uses a default stylesheet.
 
 ```
 blog_src/

@@ -11,7 +11,6 @@ use article::Article;
 const TMP_ROOT: &str = "tmp";
 const DEST_ROOT: &str = "site";
 const ARTICLES_ROOT: &str = "articles";
-const STATIC_ROOT: &str = "public";
 const CSS_FILE: &str = "styles.css";
 
 fn write_site(dest_dir: &str) -> std::io::Result<()> {
@@ -52,7 +51,7 @@ fn write_article(file_name: &str, html: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-fn write_articles(articles: &Vec<Article>, email: &str, css: &str) -> std::io::Result<()> {
+fn write_articles(articles: &Vec<Article>, email: Option<&str>, css: &str) -> std::io::Result<()> {
     let first = 0;
     let last = articles.len() - 1;
 
@@ -71,11 +70,13 @@ fn write_articles(articles: &Vec<Article>, email: &str, css: &str) -> std::io::R
     Ok(())
 }
 
-fn copy_files(css: &Path, static_dir: &Path) -> std::io::Result<()> {
-    util::copy_dir(static_dir, Path::new(TMP_ROOT)).expect("Could not copy static directory");
-    let css_name = css.file_name();
-    if let Some(css_name) = css_name {
-        fs::copy(css, Path::new(TMP_ROOT).join(css_name)).expect("Could not copy css"); 
+fn copy_files(css_path: &Path, static_dir: Option<&Path>) -> std::io::Result<()> {
+    if let Some(static_dir) = static_dir {
+        util::copy_dir(static_dir, Path::new(TMP_ROOT)).expect("Could not copy static directory");
+    }
+
+    if let Some(css_name) = css_path.file_name() {
+        fs::copy(css_path, Path::new(TMP_ROOT).join(css_name)).expect("Could not copy css"); 
     }
     Ok(())
 }
@@ -83,20 +84,22 @@ fn copy_files(css: &Path, static_dir: &Path) -> std::io::Result<()> {
 fn main() -> std::io::Result<()> {
     let args = util::get_args();
     let articles_dir = args.value_of("articles").unwrap_or(ARTICLES_ROOT);
-    let static_dir = args.value_of("static").unwrap_or(STATIC_ROOT);
+    let static_dir: Option<&str> = Some(args.value_of("static")).unwrap_or(None);
     let destination = args.value_of("destination").unwrap_or(DEST_ROOT);
-    let email = args.value_of("email").unwrap();
+    let email: Option<&str> = Some(args.value_of("email")).unwrap_or(None);
     let css = args.value_of("css").unwrap_or(CSS_FILE);
     let css_path = Path::new(css);
-    let css_name = css_path.file_name().unwrap();
-    let static_path = Path::new(static_dir);
+    let static_path: Option<&Path> = match static_dir {
+        Some(dir) => Some(Path::new(dir)),
+        None => None,
+    };
 
     let mut articles = get_articles(articles_dir)?;
     articles.reverse();
 
     create_tmp()?;
-    write_articles(&articles, email, css_name.to_str().unwrap())?;
-    copy_files(&css_path, &static_path)?;
+    write_articles(&articles, email, css_path.to_str().unwrap())?;
+    copy_files(css_path, static_path)?;
     write_site(destination).expect(&format!("Could not write {}", destination));
 
     println!("blarfed {}", destination);

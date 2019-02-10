@@ -86,7 +86,7 @@ impl Article {
     pub fn render_footer(
         index: usize,
         articles: &Vec<Article>,
-        email: &str,
+        email: Option<&str>,
     ) -> String {
         let (prev, next) = Article::get_slugs(index, articles);
         let links = Article::render_article_links(articles);
@@ -97,6 +97,14 @@ impl Article {
         let next_str = match next {
             Some(val) => format!("<a href=\"/articles/{}.html\">&rarr;</a>", val),
             None => String::from("<span class=\"disabled\">&rarr;</span>"),
+        };
+        let email_str = match email {
+            Some(e) => format!(r#"
+                        <div class="contact">
+                            <a id="contact" href="mailto:{}">&#9993;</a>
+                        </div>
+            "#, e),
+            None => String::from(""),
         };
         format!(
             r#"
@@ -111,12 +119,10 @@ impl Article {
                 </span>
                 {}
             </div>
-            <div class="contact">
-                <a id="contact" href="mailto:{}">&#9993;</a>
-            </div>
+            {}
         </footer>
         "#,
-            prev_str, links, next_str, email
+            prev_str, links, next_str, email_str
         )
     }
 
