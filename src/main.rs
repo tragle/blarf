@@ -145,5 +145,7 @@ fn main() -> std::io::Result<()> {
     util::copy_dir(&Path::new(source).join("public"), Path::new(TMP_ROOT))?;
     write_site(destination)?;
 
+    println!("blarfed {}", destination);
+
     Ok(())
 }
