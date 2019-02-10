@@ -109,11 +109,11 @@ fn create_tmp() -> std::io::Result<()> {
 fn render_footer(prev: Option<&String>, next: Option<&String>, links: &String) -> String {
     let prev_str = match prev {
         Some(val) => format!("<a href=\"/articles/{}.html\">&larr;</a>", val),
-        None => String::new(),
+        None => String::from("<span class=\"disabled\">&larr;</span>"),
     };
     let next_str = match next {
         Some(val) => format!("<a href=\"/articles/{}.html\">&rarr;</a>", val),
-        None => String::new(),
+        None => String::from("<span class=\"disabled\">&rarr;</span>"),
     };
     format!(
         r#"
@@ -138,8 +138,10 @@ fn render_footer(prev: Option<&String>, next: Option<&String>, links: &String) -
 }
 
 fn render_article_links(articles: &Vec<Article>) -> String {
+    let articles = articles.clone();
     articles
         .iter()
+        .rev()
         .map(|article| {
             let title = &article.title;
             let slug = &article.slug;
@@ -164,7 +166,6 @@ fn get_articles() -> std::result::Result<Vec<Article>, std::io::Error> {
     }
     articles.reverse();
     Ok(articles)
-        
 }
 
 fn main() -> std::io::Result<()> {
