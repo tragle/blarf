@@ -94,9 +94,9 @@ fn copy_dir(src: &Path, dest: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
-fn write_site() -> std::io::Result<()> {
-    let _ = fs::remove_dir_all(DEST_ROOT);
-    fs::rename(TMP_ROOT, DEST_ROOT)?;
+fn write_site(dest_dir: &str) -> std::io::Result<()> {
+    let _ = fs::remove_dir_all(dest_dir);
+    fs::rename(TMP_ROOT, dest_dir)?;
     Ok(())
 }
 
@@ -219,22 +219,32 @@ fn get_args<'a>() -> ArgMatches<'a> {
          .help("Sets contact email address")
          .required(true)
          .takes_value(true))
-    .arg(Arg::with_name("SOURCE_DIR")
+    .arg(Arg::with_name("source")
+         .short("s")
+         .long("src")
          .help("Sets source directory")
-         .index(1))
+         .takes_value(true))
+    .arg(Arg::with_name("destination")
+         .short("d")
+         .long("dest")
+         .help("Sets destination directory")
+         .takes_value(true))
     .get_matches()
 }
 
 fn main() -> std::io::Result<()> {
     let args = get_args();
-    let source = args.value_of("SOURCE_DIR").unwrap_or(SOURCE_ROOT);
+    let source = args.value_of("source").unwrap_or(SOURCE_ROOT);
+    let destination = args.value_of("destination").unwrap_or(DEST_ROOT);
     let email = args.value_of("email").unwrap();
-    create_tmp()?;
+
     let mut articles = get_articles(source)?;
     articles.reverse();
+
+    create_tmp()?;
     write_articles(&articles, email)?;
     copy_dir(&Path::new(source).join("public"), Path::new(TMP_ROOT))?;
-    write_site()?;
+    write_site(destination)?;
 
     Ok(())
 }
