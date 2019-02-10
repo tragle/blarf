@@ -3,6 +3,8 @@ use std::fs::{self, File};
 use std::io::prelude::*;
 use std::io::BufWriter;
 use std::path::Path;
+extern crate clap;
+use clap::{Arg, ArgMatches, App};
 
 struct Article {
     markdown: String,
@@ -106,7 +108,7 @@ fn create_tmp() -> std::io::Result<()> {
     Ok(())
 }
 
-fn render_footer(prev: Option<&String>, next: Option<&String>, links: &String) -> String {
+fn render_footer(prev: Option<&String>, next: Option<&String>, links: &String, email: &str) -> String {
     let prev_str = match prev {
         Some(val) => format!("<a href=\"/articles/{}.html\">&larr;</a>", val),
         None => String::from("<span class=\"disabled\">&larr;</span>"),
@@ -129,11 +131,11 @@ fn render_footer(prev: Option<&String>, next: Option<&String>, links: &String) -
             {}
         </div>
         <div class="contact">
-            <a id="contact" href="mailto:tragle@gmail.com">&#9993;</a>
+            <a id="contact" href="mailto:{}">&#9993;</a>
         </div>
     </footer>
     "#,
-        prev_str, links, next_str
+        prev_str, links, next_str, email
     )
 }
 
@@ -150,9 +152,9 @@ fn render_article_links(articles: &Vec<Article>) -> String {
         .join("\n")
 }
 
-fn get_articles() -> std::result::Result<Vec<Article>, std::io::Error> {
+fn get_articles(source_dir: &str) -> std::result::Result<Vec<Article>, std::io::Error> {
     let mut articles: Vec<Article> = vec![];
-    let articles_dir = format!("{}/articles", SOURCE_ROOT);
+    let articles_dir = format!("{}/articles", source_dir);
     for entry in fs::read_dir(&articles_dir).expect(&format!("Cannot read dir {}", articles_dir)) {
         let entry = &entry?;
         let path = entry.path();
@@ -167,8 +169,7 @@ fn get_articles() -> std::result::Result<Vec<Article>, std::io::Error> {
 }
 
 fn write_article(file_name: &str, html: &str) -> std::io::Result<()> {
-    let file =
-        File::create(file_name).expect(&format!("Cannot create article file {}", file_name));
+    let file = File::create(file_name).expect(&format!("Cannot create article file {}", file_name));
     let mut writer = BufWriter::new(&file);
     writer
         .write_all(html.as_bytes())
@@ -176,7 +177,7 @@ fn write_article(file_name: &str, html: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-fn write_articles(articles: &Vec<Article>) -> std::io::Result<()> {
+fn write_articles(articles: &Vec<Article>, email: &str) -> std::io::Result<()> {
     let links = render_article_links(&articles);
 
     let first = 0;
@@ -194,9 +195,12 @@ fn write_articles(articles: &Vec<Article>) -> std::io::Result<()> {
         } else {
             None
         };
-        let footer = render_footer(prev_slug, next_slug, &links);
+        let footer = render_footer(prev_slug, next_slug, &links, email);
         let html = &article.render(&footer);
-        write_article(&format!("{}/articles/{}.html", TMP_ROOT, article.slug), &html)?;
+        write_article(
+            &format!("{}/articles/{}.html", TMP_ROOT, article.slug),
+            &html,
+        )?;
         if i == last {
             write_article(&format!("{}/index.html", TMP_ROOT), &html)?;
         }
@@ -204,12 +208,32 @@ fn write_articles(articles: &Vec<Article>) -> std::io::Result<()> {
     Ok(())
 }
 
+fn get_args<'a>() -> ArgMatches<'a> {
+    App::new("blarf")
+    .version("1.0")
+    .author("Tom Ragle")
+    .about("Generates a static blog")
+    .arg(Arg::with_name("email")
+         .short("e")
+         .long("email")
+         .help("Sets contact email address")
+         .required(true)
+         .takes_value(true))
+    .arg(Arg::with_name("SOURCE_DIR")
+         .help("Sets source directory")
+         .index(1))
+    .get_matches()
+}
+
 fn main() -> std::io::Result<()> {
+    let args = get_args();
+    let source = args.value_of("SOURCE_DIR").unwrap_or(SOURCE_ROOT);
+    let email = args.value_of("email").unwrap();
     create_tmp()?;
-    let mut articles = get_articles()?;
+    let mut articles = get_articles(source)?;
     articles.reverse();
-    write_articles(&articles)?;
-    copy_dir(&Path::new(SOURCE_ROOT).join("public"), Path::new(TMP_ROOT))?;
+    write_articles(&articles, email)?;
+    copy_dir(&Path::new(source).join("public"), Path::new(TMP_ROOT))?;
     write_site()?;
 
     Ok(())
