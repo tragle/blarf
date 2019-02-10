@@ -41,7 +41,7 @@ impl Article {
         html_buf
     }
 
-    pub fn render(&self, footer: &str) -> String {
+    pub fn render(&self, css: &str, footer: &str) -> String {
         let article = &self.as_html();
         let title = &self.title;
         format!(
@@ -50,7 +50,7 @@ impl Article {
             <html>
                 <head>
                     <title>{}</title>
-                    <link rel="stylesheet" href="/styles.css">
+                    <link rel="stylesheet" href="/{}">
                     <meta charset="utf-8">
                 </head>
                 <body>
@@ -63,7 +63,7 @@ impl Article {
                 </body>
             </html>
             "#,
-            title, article, footer
+            title, css, article, footer
         )
     }
 

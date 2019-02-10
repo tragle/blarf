@@ -34,10 +34,25 @@ pub fn get_args<'a>() -> ArgMatches<'a> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("source")
+            Arg::with_name("articles")
+                .short("a")
+                .long("articles")
+                .help("Sets article source directory")
+                .required(true)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("static")
                 .short("s")
-                .long("src")
-                .help("Sets source directory")
+                .long("static")
+                .help("Sets static files source directory")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("css")
+                .short("c")
+                .long("css")
+                .help("Sets css file")
                 .takes_value(true),
         )
         .arg(

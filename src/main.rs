@@ -10,7 +10,9 @@ use article::Article;
 
 const TMP_ROOT: &str = "tmp";
 const DEST_ROOT: &str = "site";
-const SOURCE_ROOT: &str = "source";
+const ARTICLES_ROOT: &str = "articles";
+const STATIC_ROOT: &str = "public";
+const CSS_FILE: &str = "styles.css";
 
 fn write_site(dest_dir: &str) -> std::io::Result<()> {
     let _ = fs::remove_dir_all(dest_dir);
@@ -26,9 +28,8 @@ fn create_tmp() -> std::io::Result<()> {
     Ok(())
 }
 
-fn get_articles(source_dir: &str) -> std::result::Result<Vec<Article>, std::io::Error> {
+fn get_articles(articles_dir: &str) -> std::result::Result<Vec<Article>, std::io::Error> {
     let mut articles: Vec<Article> = vec![];
-    let articles_dir = format!("{}/articles", source_dir);
     for entry in fs::read_dir(&articles_dir).expect(&format!("Cannot read dir {}", articles_dir)) {
         let entry = &entry?;
         let path = entry.path();
@@ -51,16 +52,14 @@ fn write_article(file_name: &str, html: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-fn write_articles(articles: &Vec<Article>, email: &str) -> std::io::Result<()> {
-    // let links = render_article_links(&articles);
-
+fn write_articles(articles: &Vec<Article>, email: &str, css: &str) -> std::io::Result<()> {
     let first = 0;
     let last = articles.len() - 1;
 
     for i in first..=last {
         let article = &articles[i];
         let footer = Article::render_footer(i, &articles, email);
-        let html = &article.render(&footer);
+        let html = &article.render(&css, &footer);
         write_article(
             &format!("{}/articles/{}.html", TMP_ROOT, article.slug),
             &html,
@@ -72,19 +71,33 @@ fn write_articles(articles: &Vec<Article>, email: &str) -> std::io::Result<()> {
     Ok(())
 }
 
+fn copy_files(css: &Path, static_dir: &Path) -> std::io::Result<()> {
+    util::copy_dir(static_dir, Path::new(TMP_ROOT)).expect("Could not copy static directory");
+    let css_name = css.file_name();
+    if let Some(css_name) = css_name {
+        fs::copy(css, Path::new(TMP_ROOT).join(css_name)).expect("Could not copy css"); 
+    }
+    Ok(())
+}
+
 fn main() -> std::io::Result<()> {
     let args = util::get_args();
-    let source = args.value_of("source").unwrap_or(SOURCE_ROOT);
+    let articles_dir = args.value_of("articles").unwrap_or(ARTICLES_ROOT);
+    let static_dir = args.value_of("static").unwrap_or(STATIC_ROOT);
     let destination = args.value_of("destination").unwrap_or(DEST_ROOT);
     let email = args.value_of("email").unwrap();
+    let css = args.value_of("css").unwrap_or(CSS_FILE);
+    let css_path = Path::new(css);
+    let css_name = css_path.file_name().unwrap();
+    let static_path = Path::new(static_dir);
 
-    let mut articles = get_articles(source)?;
+    let mut articles = get_articles(articles_dir)?;
     articles.reverse();
 
     create_tmp()?;
-    write_articles(&articles, email)?;
-    util::copy_dir(&Path::new(source).join("public"), Path::new(TMP_ROOT))?;
-    write_site(destination)?;
+    write_articles(&articles, email, css_name.to_str().unwrap())?;
+    copy_files(&css_path, &static_path)?;
+    write_site(destination).expect(&format!("Could not write {}", destination));
 
     println!("blarfed {}", destination);
 
