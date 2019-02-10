@@ -1,5 +1,5 @@
-mod util;
 mod article;
+mod util;
 
 use std::fs::{self, File};
 use std::io::prelude::*;
@@ -26,7 +26,12 @@ fn create_tmp() -> std::io::Result<()> {
     Ok(())
 }
 
-fn render_footer(prev: Option<&String>, next: Option<&String>, links: &String, email: &str) -> String {
+fn render_footer(
+    prev: Option<&String>,
+    next: Option<&String>,
+    links: &String,
+    email: &str,
+) -> String {
     let prev_str = match prev {
         Some(val) => format!("<a href=\"/articles/{}.html\">&larr;</a>", val),
         None => String::from("<span class=\"disabled\">&larr;</span>"),
