@@ -7,14 +7,22 @@ use std::path::Path;
 struct Article {
     markdown: String,
     slug: String,
-    title: String
+    title: String,
 }
 
 impl Article {
     fn new(markdown: String, slug: String) -> Article {
         match Article::get_title(&markdown) {
-            Some(title) => Article{markdown: markdown.clone(), slug, title: title.to_owned()},
-            None => Article{markdown, slug, title: String::from("")}
+            Some(title) => Article {
+                markdown: markdown.clone(),
+                slug,
+                title: title.to_owned(),
+            },
+            None => Article {
+                markdown,
+                slug,
+                title: String::from(""),
+            },
         }
     }
 
@@ -24,7 +32,7 @@ impl Article {
         for line in lines {
             if line.starts_with(&pattern) {
                 let (_, title) = &line.split_at(pattern.len());
-                return Some(title.trim())
+                return Some(title.trim());
             }
         }
         None
@@ -111,11 +119,13 @@ fn render_footer(prev: Option<&String>, next: Option<&String>, links: &String) -
         r#"
     <footer>
         <div class="nav">
-            {}
             <a href="/">&uarr;</a>
-            {}
         </div>
-        <div class="article-list">
+        <div class="nav">
+            {}
+            <span class="article-list">
+                {}
+            </span>
             {}
         </div>
         <div class="contact">
@@ -123,22 +133,24 @@ fn render_footer(prev: Option<&String>, next: Option<&String>, links: &String) -
         </div>
     </footer>
     "#,
-        prev_str, next_str, links
+        prev_str, links, next_str
     )
 }
 
 fn render_article_links(articles: &Vec<Article>) -> String {
-    articles.iter().map(|article|{
-        let title = &article.title;
-        let slug = &article.slug;
-        format!(r#"<a href="/articles/{}.html">{}</a>"#, slug, title).to_owned()
-    }).collect::<Vec<String>>().join("\n")
+    articles
+        .iter()
+        .map(|article| {
+            let title = &article.title;
+            let slug = &article.slug;
+            format!(r#"<a href="/articles/{}.html">{}</a>"#, slug, title).to_owned()
+        })
+        .collect::<Vec<String>>()
+        .join("\n")
 }
 
-fn main() -> std::io::Result<()> {
+fn get_articles() -> std::result::Result<Vec<Article>, std::io::Error> {
     let mut articles: Vec<Article> = vec![];
-    create_tmp()?;
-    copy_dir(&Path::new(SOURCE_ROOT).join("public"), Path::new(TMP_ROOT))?;
     let articles_dir = format!("{}/articles", SOURCE_ROOT);
     for entry in fs::read_dir(&articles_dir).expect(&format!("Cannot read dir {}", articles_dir)) {
         let entry = &entry?;
@@ -150,10 +162,16 @@ fn main() -> std::io::Result<()> {
             .expect("Cannot read article file");
         articles.push(Article::new(markdown, slug));
     }
+    articles.reverse();
+    Ok(articles)
+        
+}
 
+fn main() -> std::io::Result<()> {
+    create_tmp()?;
+    let articles = get_articles()?;
     let links = render_article_links(&articles);
 
-    &articles.reverse();
     let first = 0;
     let last = articles.len() - 1;
 
@@ -172,9 +190,9 @@ fn main() -> std::io::Result<()> {
         } else {
             None
         };
-        let mut writer = BufWriter::new(&file);
         let footer = render_footer(prev_slug, next_slug, &links);
         let html = &article.render(&footer);
+        let mut writer = BufWriter::new(&file);
         writer
             .write_all(html.as_bytes())
             .expect(&format!("Cannot write article file at {}", &file_name));
@@ -187,6 +205,7 @@ fn main() -> std::io::Result<()> {
         }
     }
 
+    copy_dir(&Path::new(SOURCE_ROOT).join("public"), Path::new(TMP_ROOT))?;
     write_site()?;
 
     Ok(())
