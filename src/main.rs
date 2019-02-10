@@ -138,7 +138,6 @@ fn render_footer(prev: Option<&String>, next: Option<&String>, links: &String) -
 }
 
 fn render_article_links(articles: &Vec<Article>) -> String {
-    let articles = articles.clone();
     articles
         .iter()
         .rev()
@@ -164,13 +163,20 @@ fn get_articles() -> std::result::Result<Vec<Article>, std::io::Error> {
             .expect("Cannot read article file");
         articles.push(Article::new(markdown, slug));
     }
-    articles.reverse();
     Ok(articles)
 }
 
-fn main() -> std::io::Result<()> {
-    create_tmp()?;
-    let articles = get_articles()?;
+fn write_article(file_name: &str, html: &str) -> std::io::Result<()> {
+    let file =
+        File::create(file_name).expect(&format!("Cannot create article file {}", file_name));
+    let mut writer = BufWriter::new(&file);
+    writer
+        .write_all(html.as_bytes())
+        .expect(&format!("Cannot write article file at {}", file_name));
+    Ok(())
+}
+
+fn write_articles(articles: &Vec<Article>) -> std::io::Result<()> {
     let links = render_article_links(&articles);
 
     let first = 0;
@@ -178,9 +184,6 @@ fn main() -> std::io::Result<()> {
 
     for i in first..=last {
         let article = &articles[i];
-        let file_name = format!("{}/articles/{}.html", TMP_ROOT, article.slug);
-        let file =
-            File::create(&file_name).expect(&format!("Cannot create article file {}", &file_name));
         let prev_slug = if i > first {
             Some(&articles[i - 1].slug)
         } else {
@@ -193,19 +196,19 @@ fn main() -> std::io::Result<()> {
         };
         let footer = render_footer(prev_slug, next_slug, &links);
         let html = &article.render(&footer);
-        let mut writer = BufWriter::new(&file);
-        writer
-            .write_all(html.as_bytes())
-            .expect(&format!("Cannot write article file at {}", &file_name));
+        write_article(&format!("{}/articles/{}.html", TMP_ROOT, article.slug), &html)?;
         if i == last {
-            let index_file_name = format!("{}/index.html", TMP_ROOT);
-            let index_file = File::create(&index_file_name)
-                .expect(&format!("Cannot write index file at {}", &index_file_name));
-            let mut writer = BufWriter::new(&index_file);
-            writer.write_all(html.as_bytes())?;
+            write_article(&format!("{}/index.html", TMP_ROOT), &html)?;
         }
     }
+    Ok(())
+}
 
+fn main() -> std::io::Result<()> {
+    create_tmp()?;
+    let mut articles = get_articles()?;
+    articles.reverse();
+    write_articles(&articles)?;
     copy_dir(&Path::new(SOURCE_ROOT).join("public"), Path::new(TMP_ROOT))?;
     write_site()?;
 
