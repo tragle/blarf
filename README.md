@@ -13,15 +13,15 @@ make install
 
 ### Use
 
-Create a source directory with an articles directory containing markdown files, and a public directory with a styles.css and anything else needed by the site.
+Blarf looks for a stylesheet, a directory containing markdown articles, and a directory containing static assets.
 
 ```
-source_dir/
+blog_src/
+|_ styles.css
 |_ articles/
 | |_ 1-my_first_post.md
 | |_ 2-neat_stuff.md
 |_ public/
-| |_ styles.css
 | |_ img/
 | | |_ face.png
 | | |_ vacation.png
@@ -32,10 +32,14 @@ source_dir/
 Run blarf to create the site.
 
 ```
-blarf --email me@example.com --src source_dir --dest my_site
+blarf \
+--email me@example.com \
+--css blog_src/styles.css  \
+--static blog_src/public \
+--dest my_site
 ```
 
-You will end up with a directory like this:
+You will end up with an output directory like this:
 
 ```
 my_site/
@@ -51,4 +55,5 @@ my_site/
 | |_ 2-neat_stuff.html
 ```
 
+Serve and enjoy.
 
