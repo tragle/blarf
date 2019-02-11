@@ -22,25 +22,6 @@ impl Article {
         }
     }
 
-    fn get_title(markdown: &str) -> Option<&str> {
-        let pattern = "# ";
-        let lines: Vec<&str> = markdown.split("\n").collect();
-        for line in lines {
-            if line.starts_with(&pattern) {
-                let (_, title) = &line.split_at(pattern.len());
-                return Some(title.trim());
-            }
-        }
-        None
-    }
-
-    fn as_html(&self) -> String {
-        let parser = Parser::new(&self.markdown);
-        let mut html_buf = String::new();
-        html::push_html(&mut html_buf, parser);
-        html_buf
-    }
-
     pub fn render(&self, css: &str, footer: &str) -> String {
         let article = &self.as_html();
         let title = &self.title;
@@ -67,23 +48,7 @@ impl Article {
         )
     }
 
-    fn get_slugs(i: usize, articles: &Vec<Article>) -> (Option<&str>, Option<&str>) {
-        let first = 0;
-        let last = articles.len() - 1;
-        let prev_slug: Option<&str> = if i > first {
-            Some(&articles[i - 1].slug)
-        } else {
-            None
-        };
-        let next_slug: Option<&str> = if i < last {
-            Some(&articles[i + 1].slug)
-        } else {
-            None
-        };
-        (prev_slug, next_slug)
-    }
-
-    pub fn render_footer(index: usize, articles: &Vec<Article>, email: Option<&str>) -> String {
+    pub fn render_footer(index: usize, articles: &[Article], email: Option<&str>) -> String {
         let (prev, next) = Article::get_slugs(index, articles);
         let links = Article::render_article_links(articles);
         let prev_str = match prev {
@@ -125,7 +90,42 @@ impl Article {
         )
     }
 
-    fn render_article_links(articles: &Vec<Article>) -> String {
+    fn get_title(markdown: &str) -> Option<&str> {
+        let pattern = "# ";
+        let lines: Vec<&str> = markdown.split('\n').collect();
+        for line in lines {
+            if line.starts_with(&pattern) {
+                let (_, title) = &line.split_at(pattern.len());
+                return Some(title.trim());
+            }
+        }
+        None
+    }
+
+    fn as_html(&self) -> String {
+        let parser = Parser::new(&self.markdown);
+        let mut html_buf = String::new();
+        html::push_html(&mut html_buf, parser);
+        html_buf
+    }
+
+    fn get_slugs(i: usize, articles: &[Article]) -> (Option<&str>, Option<&str>) {
+        let first = 0;
+        let last = articles.len() - 1;
+        let prev_slug: Option<&str> = if i > first {
+            Some(&articles[i - 1].slug)
+        } else {
+            None
+        };
+        let next_slug: Option<&str> = if i < last {
+            Some(&articles[i + 1].slug)
+        } else {
+            None
+        };
+        (prev_slug, next_slug)
+    }
+
+    fn render_article_links(articles: &[Article]) -> String {
         articles
             .iter()
             .rev()

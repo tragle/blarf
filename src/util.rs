@@ -4,7 +4,8 @@ use std::fs;
 use std::path::Path;
 
 pub fn copy_dir(src: &Path, dest: &Path) -> std::io::Result<()> {
-    for entry in fs::read_dir(src).expect(&format!("Cannot read dir for copy {:?}", src)) {
+    for entry in fs::read_dir(src).unwrap_or_else(|_| panic!("Cannot read dir for copy {:?}", src))
+    {
         if let Ok(f) = entry {
             let filetype = f.file_type()?;
             if filetype.is_dir() {
@@ -13,7 +14,7 @@ pub fn copy_dir(src: &Path, dest: &Path) -> std::io::Result<()> {
                 copy_dir(&f.path(), Path::new(&dir_name))?;
             } else {
                 fs::copy(&f.path().as_os_str(), &dest.join(f.file_name()))
-                    .expect(&format!("Cannot copy {:?} to {:?}", &f, &dest));
+                    .unwrap_or_else(|_| panic!("Cannot copy {:?} to {:?}", &f, &dest));
             }
         }
     }

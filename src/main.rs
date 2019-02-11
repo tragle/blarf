@@ -21,15 +21,18 @@ fn write_site(dest_dir: &str) -> std::io::Result<()> {
 
 fn create_tmp() -> std::io::Result<()> {
     let _ = fs::remove_dir_all(TMP_ROOT);
-    fs::create_dir(TMP_ROOT).expect(&format!("Cannot create tmp dir at {}", TMP_ROOT));
+    fs::create_dir(TMP_ROOT).unwrap_or_else(|_| panic!("Cannot create tmp dir at {}", TMP_ROOT));
     let articles_folder = format!("{}/articles", TMP_ROOT);
-    fs::create_dir(&articles_folder).expect(&format!("Cannot create dir {}", &articles_folder));
+    fs::create_dir(&articles_folder)
+        .unwrap_or_else(|_| panic!("Cannot create dir {}", &articles_folder));
     Ok(())
 }
 
 fn get_articles(articles_dir: &str) -> std::result::Result<Vec<Article>, std::io::Error> {
     let mut articles: Vec<Article> = vec![];
-    for entry in fs::read_dir(&articles_dir).expect(&format!("Cannot read dir {}", articles_dir)) {
+    for entry in
+        fs::read_dir(&articles_dir).unwrap_or_else(|_| panic!("Cannot read dir {}", articles_dir))
+    {
         let entry = &entry?;
         let path = entry.path();
         let slug = path.file_stem().unwrap().to_str().unwrap().to_owned();
@@ -43,15 +46,16 @@ fn get_articles(articles_dir: &str) -> std::result::Result<Vec<Article>, std::io
 }
 
 fn write_article(file_name: &str, html: &str) -> std::io::Result<()> {
-    let file = File::create(file_name).expect(&format!("Cannot create article file {}", file_name));
+    let file = File::create(file_name)
+        .unwrap_or_else(|_| panic!("Cannot create article file {}", file_name));
     let mut writer = BufWriter::new(&file);
     writer
         .write_all(html.as_bytes())
-        .expect(&format!("Cannot write article file at {}", file_name));
+        .unwrap_or_else(|_| panic!("Cannot write article file at {}", file_name));
     Ok(())
 }
 
-fn write_articles(articles: &Vec<Article>, email: Option<&str>, css: &str) -> std::io::Result<()> {
+fn write_articles(articles: &[Article], email: Option<&str>, css: &str) -> std::io::Result<()> {
     let first = 0;
     let last = articles.len() - 1;
 
@@ -100,7 +104,7 @@ fn main() -> std::io::Result<()> {
     create_tmp()?;
     write_articles(&articles, email, css_path.to_str().unwrap())?;
     copy_files(css_path, static_path)?;
-    write_site(destination).expect(&format!("Could not write {}", destination));
+    write_site(destination).unwrap_or_else(|_| panic!("Could not write {}", destination));
 
     println!("blarfed {}", destination);
 
