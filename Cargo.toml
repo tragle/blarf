@@ -5,6 +5,10 @@ authors = ["Tom Ragle <tragle@gmail.com>"]
 edition = "2018"
 description = "static site generator"
 homepage = "https://github.com/tragle/blarf"
+repository = "https://github.com/tragle/blarf
+categories = ["web-programming"]
+keywords = ["static", "site", "blog"]
+license = "MIT"
 
 [dependencies]
 pulldown-cmark = { version = "0.2.0", default-features = false }
