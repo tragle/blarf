@@ -1,6 +1,6 @@
 [package]
 name = "blarf"
-version = "1.0.4"
+version = "1.0.5"
 authors = ["Tom Ragle <tragle@gmail.com>"]
 edition = "2018"
 description = "static site generator"

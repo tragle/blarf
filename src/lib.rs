@@ -1,18 +1,52 @@
+pub mod util;
 mod article;
-mod util;
 
+use article::Article;
 use std::fs::{self, File};
 use std::io::prelude::*;
 use std::io::BufWriter;
 use std::path::Path;
 
-use article::Article;
-
 const TMP_ROOT: &str = "tmp";
-const DEST_ROOT: &str = "site";
-const ARTICLES_ROOT: &str = "articles";
 const CSS_FILE: &str = "styles.css";
 static CSS_STYLES: &'static str = include_str!("../static/styles.css");
+
+pub struct Config<'a> {
+    pub articles_dir: &'a str,
+    pub static_dir: Option<&'a str>,
+    pub destination_dir: &'a str,
+    pub email: Option<&'a str>,
+    pub css_path: Option<&'a str>,
+}
+
+pub fn exec(config: Config) -> std::io::Result<()> {
+    create_tmp()?;
+    
+    let default_css_path = Path::new(CSS_FILE);
+    let mut default_css_file = File::create(default_css_path)?;
+    default_css_file.write_all(CSS_STYLES.as_bytes())?;
+
+    let css_path = match config.css_path {
+       Some(path) => Path::new(path),
+       None => default_css_path,
+    };
+
+    let static_path: Option<&Path> = match config.static_dir {
+        Some(dir) => Some(Path::new(dir)),
+        None => None,
+    };
+
+    let mut articles = get_articles(config.articles_dir)?;
+    articles.reverse();
+
+    write_articles(&articles, config.email, css_path.to_str().unwrap())?;
+    copy_files(css_path, static_path)?;
+    write_site(config.destination_dir).unwrap_or_else(|_| panic!("Could not write {}", config.destination_dir));
+    fs::remove_file(default_css_path)?;
+
+    Ok(())
+}
+
 
 fn write_site(dest_dir: &str) -> std::io::Result<()> {
     let _ = fs::remove_dir_all(dest_dir);
@@ -29,7 +63,7 @@ fn create_tmp() -> std::io::Result<()> {
     Ok(())
 }
 
-fn get_articles(articles_dir: &str) -> std::result::Result<Vec<Article>, std::io::Error> {
+pub fn get_articles(articles_dir: &str) -> std::result::Result<Vec<Article>, std::io::Error> {
     let mut articles: Vec<Article> = vec![];
     for entry in
         fs::read_dir(&articles_dir).unwrap_or_else(|_| panic!("Cannot read dir {}", articles_dir))
@@ -86,35 +120,4 @@ fn copy_files(css_path: &Path, static_dir: Option<&Path>) -> std::io::Result<()>
     Ok(())
 }
 
-fn main() -> std::io::Result<()> {
-    let args = util::get_args();
-    let articles_dir = args.value_of("articles").unwrap_or(ARTICLES_ROOT);
-    let static_dir: Option<&str> = Some(args.value_of("static")).unwrap_or(None);
-    let destination = args.value_of("destination").unwrap_or(DEST_ROOT);
-    let email: Option<&str> = Some(args.value_of("email")).unwrap_or(None);
-    
-    create_tmp()?;
-    
-    let default_css_path = Path::new(CSS_FILE);
-    let mut default_css_file = File::create(default_css_path)?;
-    default_css_file.write_all(CSS_STYLES.as_bytes())?;
 
-    let css = args.value_of("css").unwrap_or(CSS_FILE);
-    let css_path = Path::new(css);
-    let static_path: Option<&Path> = match static_dir {
-        Some(dir) => Some(Path::new(dir)),
-        None => None,
-    };
-
-    let mut articles = get_articles(articles_dir)?;
-    articles.reverse();
-
-    write_articles(&articles, email, css_path.to_str().unwrap())?;
-    copy_files(css_path, static_path)?;
-    write_site(destination).unwrap_or_else(|_| panic!("Could not write {}", destination));
-    fs::remove_file(default_css_path)?;
-
-    println!("blarfed {}", destination);
-
-    Ok(())
-}
