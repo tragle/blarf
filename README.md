@@ -1,6 +1,6 @@
 # blarf
 
-barfs blogs
+static site generator
 
 ## Installation
 
