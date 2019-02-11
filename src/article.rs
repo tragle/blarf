@@ -33,6 +33,7 @@ impl Article {
                     <title>{}</title>
                     <link rel="stylesheet" href="/{}">
                     <meta charset="utf-8">
+                    <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1">
                 </head>
                 <body>
                     <main>
