@@ -2,3 +2,4 @@
 **/*.rs.bk
 tags
 *.swp
+.DS_Store
