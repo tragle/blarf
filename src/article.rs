@@ -83,11 +83,7 @@ impl Article {
         (prev_slug, next_slug)
     }
 
-    pub fn render_footer(
-        index: usize,
-        articles: &Vec<Article>,
-        email: Option<&str>,
-    ) -> String {
+    pub fn render_footer(index: usize, articles: &Vec<Article>, email: Option<&str>) -> String {
         let (prev, next) = Article::get_slugs(index, articles);
         let links = Article::render_article_links(articles);
         let prev_str = match prev {
@@ -99,11 +95,14 @@ impl Article {
             None => String::from("<span class=\"disabled\">&rarr;</span>"),
         };
         let email_str = match email {
-            Some(e) => format!(r#"
+            Some(e) => format!(
+                r#"
                         <div class="contact">
                             <a id="contact" href="mailto:{}">&#9993;</a>
                         </div>
-            "#, e),
+            "#,
+                e
+            ),
             None => String::from(""),
         };
         format!(
@@ -138,6 +137,4 @@ impl Article {
             .collect::<Vec<String>>()
             .join("\n")
     }
-
-
 }

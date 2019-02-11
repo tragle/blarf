@@ -76,7 +76,7 @@ fn copy_files(css_path: &Path, static_dir: Option<&Path>) -> std::io::Result<()>
     }
 
     if let Some(css_name) = css_path.file_name() {
-        fs::copy(css_path, Path::new(TMP_ROOT).join(css_name)).expect("Could not copy css"); 
+        fs::copy(css_path, Path::new(TMP_ROOT).join(css_name)).expect("Could not copy css");
     }
     Ok(())
 }
