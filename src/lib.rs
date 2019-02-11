@@ -12,11 +12,11 @@ const CSS_FILE: &str = "styles.css";
 static CSS_STYLES: &'static str = include_str!("../static/styles.css");
 
 pub struct Config<'a> {
-    pub articles_dir: &'a str,
-    pub static_dir: Option<&'a str>,
-    pub destination_dir: &'a str,
+    pub articles_dir: &'a Path,
+    pub static_dir: &'a Option<&'a Path>,
+    pub destination_dir: &'a Path,
     pub email: Option<&'a str>,
-    pub css_path: Option<&'a str>,
+    pub css_path: Option<&'a Path>,
 }
 
 pub fn exec(config: Config) -> std::io::Result<()> {
@@ -26,29 +26,20 @@ pub fn exec(config: Config) -> std::io::Result<()> {
     let mut default_css_file = File::create(default_css_path)?;
     default_css_file.write_all(CSS_STYLES.as_bytes())?;
 
-    let css_path = match config.css_path {
-       Some(path) => Path::new(path),
-       None => default_css_path,
-    };
-
-    let static_path: Option<&Path> = match config.static_dir {
-        Some(dir) => Some(Path::new(dir)),
-        None => None,
-    };
-
+    let css_path = config.css_path.unwrap_or(default_css_path);
     let mut articles = get_articles(config.articles_dir)?;
     articles.reverse();
 
     write_articles(&articles, config.email, css_path.to_str().unwrap())?;
-    copy_files(css_path, static_path)?;
-    write_site(config.destination_dir).unwrap_or_else(|_| panic!("Could not write {}", config.destination_dir));
+    copy_files(css_path, config.static_dir)?;
+    write_site(config.destination_dir).unwrap_or_else(|_| panic!("Could not write {:?}", config.destination_dir));
     fs::remove_file(default_css_path)?;
 
     Ok(())
 }
 
 
-fn write_site(dest_dir: &str) -> std::io::Result<()> {
+fn write_site(dest_dir: &Path) -> std::io::Result<()> {
     let _ = fs::remove_dir_all(dest_dir);
     fs::rename(TMP_ROOT, dest_dir)?;
     Ok(())
@@ -63,10 +54,10 @@ fn create_tmp() -> std::io::Result<()> {
     Ok(())
 }
 
-pub fn get_articles(articles_dir: &str) -> std::result::Result<Vec<Article>, std::io::Error> {
+pub fn get_articles(articles_dir: &Path) -> std::result::Result<Vec<Article>, std::io::Error> {
     let mut articles: Vec<Article> = vec![];
     for entry in
-        fs::read_dir(&articles_dir).unwrap_or_else(|_| panic!("Cannot read dir {}", articles_dir))
+        fs::read_dir(&articles_dir).unwrap_or_else(|_| panic!("Cannot read dir {:?}", articles_dir))
     {
         let entry = &entry?;
         let path = entry.path();
@@ -109,7 +100,7 @@ fn write_articles(articles: &[Article], email: Option<&str>, css: &str) -> std::
     Ok(())
 }
 
-fn copy_files(css_path: &Path, static_dir: Option<&Path>) -> std::io::Result<()> {
+fn copy_files(css_path: &Path, static_dir: &Option<&Path>) -> std::io::Result<()> {
     if let Some(static_dir) = static_dir {
         util::copy_dir(static_dir, Path::new(TMP_ROOT)).expect("Could not copy static directory");
     }
