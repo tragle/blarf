@@ -1,9 +1,10 @@
 [package]
 name = "blarf"
-version = "1.0.1"
+version = "1.0.2"
 authors = ["Tom Ragle <tragle@gmail.com>"]
 edition = "2018"
 description = "static site generator"
+documentation = "https://docs.rs/crate/blarf"
 homepage = "https://github.com/tragle/blarf"
 repository = "https://github.com/tragle/blarf"
 categories = ["web-programming"]

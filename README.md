@@ -4,7 +4,15 @@ barfs blogs
 
 ## Installation
 
-Requires rust and make.
+Requires Rust.
+
+Option 1 -- install to ~/.cargo/.bin/
+
+```
+cargo install blarf
+```
+
+Option 2 -- install to /usr/local/bin
 
 ```
 make
