@@ -1,12 +1,33 @@
 use pulldown_cmark::{html, Parser};
 
+/// Data container for a single article
 pub struct Article {
+    /// Raw markdown of article
     pub markdown: String,
+    /// Short name of the article, appropriate for generating hyperlinks
+    ///
+    /// ### Example:
+    /// `1-my-first-post`
     pub slug: String,
+    /// Title of the article, appropriate for display
+    ///
+    /// ### Example:
+    /// `My First Post`
     pub title: String,
 }
 
 impl Article {
+    /// Constructor for `Article`
+    ///
+    /// Note that this will attempt to write the `title` field of the `Article` using
+    /// `Article::get_title`, defaulting to an empty string if none is found.
+    ///
+    /// # Example
+    /// ```
+    /// let markdown = String::from("# My first post\nHello world!");
+    /// let slug = "1-my-first-post"
+    /// let article = Article::new(markdown, slug);
+    /// ```
     pub fn new(markdown: String, slug: String) -> Article {
         match Article::get_title(&markdown) {
             Some(title) => Article {
@@ -22,6 +43,12 @@ impl Article {
         }
     }
 
+    /// Render the main template to html
+    ///
+    /// # Example
+    /// ```
+    /// let html = article.render("styles.css", "<p>copyright 2019</p>");
+    /// ```
     pub fn render(&self, css: &str, footer: &str) -> String {
         let article = &self.as_html();
         let title = &self.title;
@@ -49,6 +76,7 @@ impl Article {
         )
     }
 
+    /// Render a footer, with navigation controls based on position in list of articles
     pub fn render_footer(index: usize, articles: &[Article], email: Option<&str>) -> String {
         let (prev, next) = Article::get_slugs(index, articles);
         let links = Article::render_article_links(articles);
@@ -91,7 +119,10 @@ impl Article {
         )
     }
 
-    fn get_title(markdown: &str) -> Option<&str> {
+    /// Parse title from markdown
+    ///
+    /// Returns text of first top-level heading (like `# My first post`), or `None`
+    pub fn get_title(markdown: &str) -> Option<&str> {
         let pattern = "# ";
         let lines: Vec<&str> = markdown.split('\n').collect();
         for line in lines {

@@ -1,5 +1,26 @@
+//! # blarf
+//!
+//! `blarf` is a static site generator. This crate provides both the binary and library used by the
+//! binary.
+//!
+//! Run the binary to transform your markdown files and other assets into a static site.
+//!
+//! # Example
+//!
+//! Assuming a set of markdown files live in `articles/`, and a set of static assets (such as image
+//! files) live in `public/`, you can generate a new set of files like so:
+//!
+//! ```
+//! blarf -e me@example.com -a articles -s public
+//! ```
+//!
+//! This will produce an output directory `site/`, which you may copy to your favorite web host and
+//! serve.
+//!
+//! For a full set of options, run `blarf --help`.
+
+pub mod article;
 pub mod util;
-mod article;
 
 use article::Article;
 use std::fs::{self, File};
@@ -11,17 +32,27 @@ const TMP_ROOT: &str = "tmp";
 const CSS_FILE: &str = "styles.css";
 static CSS_STYLES: &'static str = include_str!("../static/styles.css");
 
+/// Configuration values for the `exec` function
 pub struct Config<'a> {
+    /// directory holding markdown documents
     pub articles_dir: &'a Path,
+    /// directory holding static assets to be copied
     pub static_dir: &'a Option<&'a Path>,
+    /// output directory
     pub destination_dir: &'a Path,
+    /// email address for contact link
     pub email: Option<&'a str>,
+    /// stylesheet -- if none is supplied a default will be pulled in
     pub css_path: Option<&'a Path>,
 }
 
+/// Executes site creation.
+///
+/// Reads files from the locations provided in `Config`, transforms markdown to HTML, and writes
+/// the results to disk at `Config.destination_dir` (overwriting if the directory exists).
 pub fn exec(config: Config) -> std::io::Result<()> {
     create_tmp()?;
-    
+
     let default_css_path = Path::new(CSS_FILE);
     let mut default_css_file = File::create(default_css_path)?;
     default_css_file.write_all(CSS_STYLES.as_bytes())?;
@@ -32,12 +63,12 @@ pub fn exec(config: Config) -> std::io::Result<()> {
 
     write_articles(&articles, config.email, css_path.to_str().unwrap())?;
     copy_files(css_path, config.static_dir)?;
-    write_site(config.destination_dir).unwrap_or_else(|_| panic!("Could not write {:?}", config.destination_dir));
+    write_site(config.destination_dir)
+        .unwrap_or_else(|_| panic!("Could not write {:?}", config.destination_dir));
     fs::remove_file(default_css_path)?;
 
     Ok(())
 }
-
 
 fn write_site(dest_dir: &Path) -> std::io::Result<()> {
     let _ = fs::remove_dir_all(dest_dir);
@@ -54,7 +85,7 @@ fn create_tmp() -> std::io::Result<()> {
     Ok(())
 }
 
-pub fn get_articles(articles_dir: &Path) -> std::result::Result<Vec<Article>, std::io::Error> {
+fn get_articles(articles_dir: &Path) -> std::result::Result<Vec<Article>, std::io::Error> {
     let mut articles: Vec<Article> = vec![];
     for entry in
         fs::read_dir(&articles_dir).unwrap_or_else(|_| panic!("Cannot read dir {:?}", articles_dir))
@@ -110,5 +141,3 @@ fn copy_files(css_path: &Path, static_dir: &Option<&Path>) -> std::io::Result<()
     }
     Ok(())
 }
-
-

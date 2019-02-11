@@ -3,6 +3,17 @@ use clap::{App, Arg, ArgMatches};
 use std::fs;
 use std::path::Path;
 
+/// Recursively copies contents of `src` directory to `dest` directory.
+///
+/// # Example
+///
+/// ```
+/// use std::path::Path;
+///
+/// let from_dir = Path::new("source");
+/// let to_dir = Path::new("my_site");
+/// copy_dir(from_dir, to_dir)?;
+/// ```
 pub fn copy_dir(src: &Path, dest: &Path) -> std::io::Result<()> {
     for entry in fs::read_dir(src).unwrap_or_else(|_| panic!("Cannot read dir for copy {:?}", src))
     {
@@ -21,6 +32,14 @@ pub fn copy_dir(src: &Path, dest: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
+/// Prompts for command-line arguments.
+///
+/// # Examples
+///
+/// ```
+/// let args = get_args();
+/// let articles_dir = args.value_of("articles").unwrap();
+/// ```
 pub fn get_args<'a>() -> ArgMatches<'a> {
     App::new("blarf")
         .version("1.0")
