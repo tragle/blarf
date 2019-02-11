@@ -67,7 +67,7 @@ Serve and enjoy.
 
 ### Article structure
 
-Articles should conform to a few of conventions for best results:
+Articles should conform to a few conventions for best results:
 
 * Articles are listed in the order they appear in the articles directory, so you may want to prefix filenames with numbers, e.g. _1-my_first_post.md, 2-neat_stuff.md_ etc.
 * Each markdown document should have a top-level heading somewhere (with a single hash mark, e.g. `# My first post!`). This becomes the article's title in the page's HTML and in the list of historical links in the footer.
