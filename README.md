@@ -2,6 +2,8 @@
 
 static site generator
 
+[Documentation](https://docs.rs/blarf/)
+
 ## Installation
 
 Requires Rust.
