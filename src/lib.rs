@@ -59,7 +59,8 @@ pub fn exec(config: Config) -> std::io::Result<()> {
 
     let css_path = config.css_path.unwrap_or(default_css_path);
     let mut articles = get_articles(config.articles_dir)?;
-    articles.reverse();
+    articles.sort_by(|a, b| a.slug.cmp(&b.slug));
+    // articles.reverse();
 
     write_articles(&articles, config.email, css_path.to_str().unwrap())?;
     copy_files(css_path, config.static_dir)?;
